@@ -1,0 +1,6 @@
+[submodule "extlib/less.js"]
+	path = extlib/less.js
+	url = git://github.com/cloudhead/less.js
+[submodule "extlib/bootstrap"]
+	path = extlib/bootstrap
+	url = git://github.com/twitter/bootstrap
