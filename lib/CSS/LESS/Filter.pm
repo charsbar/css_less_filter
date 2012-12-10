@@ -132,8 +132,8 @@ sub _apply {
             elsif (ref $_->[1] eq ref sub {}) {
               $part->{value} = $_->[1]->($part->{value});
             }
+            $_->[2] = 1;
           }
-          $_->[2] = 1;
         }
         next unless defined $part->{value};
         $str .= join '', @$part{qw/key sep value semicolon/};
