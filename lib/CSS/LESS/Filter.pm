@@ -21,7 +21,9 @@ sub new {
 }
 
 sub process {
-  my ($self, $less) = @_;
+  my ($self, $less, $opts) = @_;
+
+  my $mode = ($opts || {})->{mode} || 'warn';
 
   $_->[2] = 0 for @{$self->{filters}}; # clear "used" flag.
 
@@ -29,7 +31,34 @@ sub process {
 
   for (@{$self->{filters}}) {
     next if $_->[2];
-    carp "Filter '$_->[0]' ($_->[1]) is not used at all.\n";
+    if ($mode eq 'warn') {
+      carp "Filter '$_->[0]' ($_->[1]) is not used at all.";
+      next;
+    }
+    if ($mode eq 'append') {
+      my ($id, $filter) = ($_->[0], $_->[1]);
+      if (ref $id) {
+        carp "Can't append ambiguous '$id' ($filter).";
+        next;
+      }
+      my $type = substr($id, -1);
+      my $depth =()= $id =~ /\{/g;
+      my $closing_braces = '}' x $depth;
+      my $value = !ref $filter ? $filter : $filter->('');
+      $res .= "\n" if length $res && substr($res, -1) ne "\n";
+      if ($id eq '') {
+        $res .= "$value\n";
+      }
+      elsif ($type eq '{') { # ruleset
+        $res .= "$id\n$value";
+        $res .= "\n" if substr($res, -1) ne "\n";
+        $res .= "$closing_braces\n";
+      }
+      else { # declaration, at rule
+        $closing_braces = " $closing_braces" if $closing_braces;
+        $res .= "$id $value;$closing_braces\n";
+      }
+    }
   }
 
   $res;
@@ -69,6 +98,7 @@ sub _apply {
         my $inside = $self->_apply($part->{value}, $new_id);
 
         for (@{$self->{filters}}) {
+          next if $_->[0] eq '';
           if (
             (!ref $_->[0] and $new_id eq $_->[0]) or
             (ref $_->[0] eq ref qr// and $new_id =~ /$_->[0]/)
@@ -91,6 +121,7 @@ sub _apply {
         (my $sep = $part->{sep}) =~ s/\s+//gs;
         my $cur_id = (length $id ? "$id " : "") . "$part->{key}$sep";
         for (@{$self->{filters}}) {
+          next if $_->[0] eq '';
           if (
             (!ref $_->[0] and $cur_id eq $_->[0]) or
             (ref $_->[0] eq ref qr// and $cur_id =~ /$_->[0]/)
