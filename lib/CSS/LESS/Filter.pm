@@ -414,8 +414,8 @@ CSS::LESS::Filter - tweak CSS/LESS files such as of Twitter Bootstrap
   # (returning undef removes the declaration/ruleset entirely)
   $filter->add(qr/\.ie \{/ => undef);
   
-  # You can also tweak "@" rule, but take care: "@" rule may
-  # (and often) be seen several times in the same context.
+  # You can also tweak an "@" rule, but take care: the same "@" rule
+  # may (and often) be seen several times in the same context.
   # You most probably need to check its value in a callback.
   $filter->add('@import' => sub {
     my $value = shift;
@@ -426,7 +426,7 @@ CSS::LESS::Filter - tweak CSS/LESS files such as of Twitter Bootstrap
   # parse LESS, apply filters, and return the modified LESS
   my $file = file('less/docs.less');
   my $less = $file->slurp;
-  $file->save($filter->process($less));
+  $file->save($filter->process($less, {mode => 'append'}));
 
 =head1 DESCRIPTION
 
@@ -452,10 +452,33 @@ You can use regular expressions to match multiple selectors, though
 with some speed penalty. (Note that you may eventually need to
 escape '{' to suppress future warnings.)
 
+If you just want to append something at the end of a less file,
+pass an empty string as a selector.
+
+  # this comment will be appended at the end.
+  $filter->add('' => "// whatever you want to add\n");
+
 =head2 process
 
 takes LESS content, parses it to apply filters, and returns
-the result.
+the result. Optionally, you can pass a hash reference to change
+filter's behavior. As of version 0.03, only available option is
+C<mode>:
+
+=over 4
+
+=item mode => 'warn'
+
+L<CSS::LESS::Filter> warns if any of the filters are not used.
+Those unmatched filters will be ignored.
+
+=item mode => 'append'
+
+Under this mode, unmatched filters are used to append things at the
+end of the processed LESS. L<CSS::LESS::Filter> still warns if
+any filter that uses a regular expression fails.
+
+=back
 
 =head1 NOTE
 
