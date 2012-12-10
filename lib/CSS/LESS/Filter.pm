@@ -23,7 +23,16 @@ sub new {
 sub process {
   my ($self, $less) = @_;
 
-  $self->_apply($self->_parse($less), "");
+  $_->[2] = 0 for @{$self->{filters}}; # clear "used" flag.
+
+  my $res = $self->_apply($self->_parse($less), "");
+
+  for (@{$self->{filters}}) {
+    next if $_->[2];
+    carp "Filter '$_->[0]' ($_->[1]) is not used at all.\n";
+  }
+
+  $res;
 }
 
 sub add {
@@ -70,6 +79,7 @@ sub _apply {
             elsif (ref $_->[1] eq ref sub {}) {
               $inside = $_->[1]->($inside);
             }
+            $_->[2] = 1;
           }
         }
         next unless defined $inside;
@@ -92,6 +102,7 @@ sub _apply {
               $part->{value} = $_->[1]->($part->{value});
             }
           }
+          $_->[2] = 1;
         }
         next unless defined $part->{value};
         $str .= join '', @$part{qw/key sep value semicolon/};
